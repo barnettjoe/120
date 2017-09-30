@@ -120,7 +120,7 @@ class Computer < Player
   end
 
   def set_name
-    self.name = ['R2D2', 'Hal', 'Chappie', 'Sonny', 'Number 5'].sample
+    self.name = self.class.name
   end
 
   def historical_chance_losing(move)
@@ -173,13 +173,37 @@ class Computer < Player
   end
 end
 
+class R2D2 < Computer
+  def choose
+    self.move = Rock.new
+  end
+end
+
+class Hal < Computer
+  def choose
+     choice = (["Scissors"] * 5 + ["Rock"]).sample
+     self.move = Move.const_get(choice).new
+  end
+end
+
+class Chappie < Computer
+end
+
+class Sonny < Computer
+end
+
+class Number_5 < Computer
+end
+
+
 class RPSGame
   POSSIBLE_MOVES = %w[Rock Paper Scissors Lizard Spock]
   attr_accessor :human, :computer
 
   def initialize
     @human = Human.new
-    @computer = Computer.new
+    computer_name = ['R2D2', 'Hal', 'Chappie', 'Sonny', 'Number_5'].sample
+    @computer = Computer.const_get(computer_name).new
     human.opponent = computer
     computer.opponent = human
   end
