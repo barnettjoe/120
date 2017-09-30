@@ -1,43 +1,29 @@
+require 'pry'
+
 class Move
-  VALUES = ['rock', 'paper', 'scissors']
+  VALUES = %w[rock paper scissors spock lizard]
+
+  attr_accessor :value
+
   def initialize(value)
     @value = value
   end
 
-  def >(other_move)
-    (rock?     && other_move.scissors?)   ||
-      (scissors? && other_move.paper?)    ||
-      (paper?    && other_move.rock?)
-  end
-
-  def <(other_move)
-    (scissors? && other_move.rock?)       ||
-      (paper?    && other_move.scissors?) ||
-      (rock?     && other_move.paper?)
-  end
-
-  def rock?
-    @value == 'rock'
-  end
-
-  def paper?
-    @value == 'paper'
-  end
-
-  def scissors?
-    @value == 'scissors'
-  end
-
   def to_s
-    @value
+    @value.capitalize
   end
 end
 
 class Player
-  attr_accessor :move, :name
+  attr_accessor :move, :name, :score
 
   def initialize
     set_name
+    @score = 0
+  end
+
+  def win_round
+    self.score += 1
   end
 end
 
@@ -45,7 +31,7 @@ class Human < Player
   def choose
     choice = nil
     loop do
-      puts "Please choose rock, paper, or scissors:"
+      puts "Please choose rock, paper, scissors, lizard or spock:"
       choice = gets.chomp
       break if Move::VALUES.include? choice
       puts "Sorry, invalid choice."
@@ -76,6 +62,17 @@ class Computer < Player
 end
 
 class RPSGame
+  RESULTS_ARRAY = ["Scissors cuts Paper",
+                   "Paper covers Rock",
+                   "Rock crushes Lizard",
+                   "Lizard poisons Spock",
+                   "Spock smashes Scissors",
+                   "Scissors decapitates Lizard",
+                   "Lizard eats Paper",
+                   "Paper disproves Spock",
+                   "Spock vaporizes Rock",
+                   "Rock crushes Scissors"].map(&:split)
+
   attr_accessor :human, :computer
 
   def initialize
@@ -84,21 +81,60 @@ class RPSGame
   end
 
   def display_welcome_message
-    puts "Welcome to Rock, Paper, Scissors!"
+    puts "Welcome to Rock, Paper, Scissors, Lizard, Spock!"
+    puts "The first to get 3 points wins."
   end
 
   def display_goodbye_message
-    puts "Thanks for playing Rock, Paper, Scissors. Good bye!"
+    puts "Thanks for playing Rock, Paper, Scissors, Lizard, Spock. Good bye!"
   end
 
-  def display_winner
-    if human.move > computer.move
-      puts "#{human.name} won!"
-    elsif computer.move > human.move
-      puts "#{computer.name} won!"
+  def display_round_winner
+    if computer.move.value == human.move.value
+      puts "This round is a tie."
     else
-      puts "It's a tie!"
+      winning_player = winner()
+      losing_player  = loser()
+      display_action(winning_player, losing_player)
+      puts "#{winning_player.name} won the round!"
+      winning_player.win_round
     end
+  end
+
+  def winner
+    # this is the main bit of logic where we actually find who won
+    human_win = RESULTS_ARRAY.any? do |winning_move, _, losing_move|
+      (winning_move.downcase == human.move.value) &&
+        (losing_move.downcase == computer.move.value)
+    end
+
+    human_win ? human : computer
+  end
+
+  def loser
+    # whoever is not the winner, must be the loser
+    # (we only use this method we have already checked for a tie)
+    [human, computer].find { |player| player != winner }
+  end
+
+  def display_action(winning_player, losing_player)
+    winning_move = winning_player.move.value
+    losing_move  = losing_player.move.value
+
+    action = RESULTS_ARRAY.find do |a, _, c|
+      a.downcase == winning_move && c.downcase == losing_move
+    end
+
+    puts action.join(" ")
+  end
+
+  def display_overall_winner
+    puts "#{(human.score == 3 ? human : computer).name} won the match!"
+  end
+
+  def display_scores
+    score = "#{human.name}: #{human.score}, #{computer.name}: #{computer.score}"
+    puts "The score is: #{score}"
   end
 
   def display_moves
@@ -118,13 +154,23 @@ class RPSGame
     return true  if answer.downcase == 'y'
   end
 
+  def play_round
+    human.choose
+    computer.choose
+    puts "-----------------------------"
+    display_moves
+    display_round_winner
+    display_scores
+    puts "-----------------------------"
+  end
+
   def play
     display_welcome_message
     loop do
-      human.choose
-      computer.choose
-      display_moves
-      display_winner
+      computer.score = 0
+      human.score    = 0
+      play_round until human.score == 3 || computer.score == 3
+      display_overall_winner
       break unless play_again?
     end
     display_goodbye_message
